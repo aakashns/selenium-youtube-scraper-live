@@ -1,4 +1,4 @@
-"""This file runs on Replit"""
+"""This file runs on AWS Lambda"""
 
 import smtplib
 import os
@@ -9,12 +9,17 @@ from selenium.webdriver.common.by import By
 
 YOUTUBE_TRENDING_URL = 'https://www.youtube.com/feed/trending'
 
+BINARY_LOCATION = os.environ['BINARY_LOCATION']
+
 def get_driver():
-  chrome_options = Options()
-  chrome_options.add_argument('--no-sandbox')
-  chrome_options.add_argument('--headless')
-  chrome_options.add_argument('--disable-dev-shm-usage')
-  driver = webdriver.Chrome(options=chrome_options)
+  options = Options()
+  options.binary_location = '/opt/headless-chromium'
+  options.add_argument('--headless')
+  options.add_argument('--no-sandbox')
+  options.add_argument('--single-process')
+  options.add_argument('--disable-dev-shm-usage')
+  driver = webdriver.Chrome('/opt/chromedriver',chrome_options=options)
+  
   return driver
 
 def get_videos(driver):
@@ -43,7 +48,7 @@ def parse_video(video):
     'channel': channel_name,
     'description': description
   }
-
+  
 def send_email(body):
   try:
     server_ssl = smtplib.SMTP_SSL('smtp.gmail.com', 465)
@@ -71,26 +76,32 @@ def send_email(body):
       print('Something went wrong...')
 
 
+def lambda_handler(event, context):
+    # Create the browser
+    driver = get_driver()
+    
+    # Get the videos
+    videos = get_videos(driver)
+    
+    # Parse the top 10 videos
+    videos_data = [parse_video(video) for video in videos[:10]]
+    
+    # Send the data over email
+    body = json.dumps(videos_data)
+    send_email(body)
+
+    driver.close();
+    driver.quit();
+
+    response = {
+        "statusCode": 200,
+        "body": videos_data
+    }
+
+    return response
+
+
 if __name__ == "__main__":
-  print('Creating driver')
-  driver = get_driver()
+  lambda_handler(None, None)
 
-  print('Fetching trending videos')
-  videos = get_videos(driver)
-  
-  print(f'Found {len(videos)} videos')
-
-  print('Parsing top 10 videos')
-  videos_data = [parse_video(video) for video in videos[:10]]
-  
-  print('Save the data to a CSV')
-  # videos_df = pd.DataFrame(videos_data)
-  # print(videos_df)
-  # videos_df.to_csv('trending.csv', index=None)
-
-  print("Send the results over email")
-  body = json.dumps(videos_data, indent=2)
-  send_email(body)
-
-  print('Finished.')
-
+    
