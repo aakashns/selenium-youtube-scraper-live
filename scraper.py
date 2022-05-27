@@ -1,11 +1,14 @@
 """This file runs on Replit"""
-
+"""Sometimes the code will not scrape all the videos if the page is not loaded completely. 
+  Import the time module & use the time.sleep(5) command to load the page completely and then find the elements."""
 import smtplib
 import os
 import json
+#import time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+
 
 YOUTUBE_TRENDING_URL = 'https://www.youtube.com/feed/trending'
 
@@ -20,6 +23,7 @@ def get_driver():
 def get_videos(driver):
   VIDEO_DIV_TAG = 'ytd-video-renderer'
   driver.get(YOUTUBE_TRENDING_URL)
+  #time.sleep(5)
   videos = driver.find_elements(By.TAG_NAME, VIDEO_DIV_TAG)
   return videos
 
